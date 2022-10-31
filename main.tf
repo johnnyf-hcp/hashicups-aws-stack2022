@@ -79,6 +79,7 @@ resource "aws_instance" "hashicups-docker-server" {
   instance_type               = var.instance_type
   key_name                    = var.keypair
   vpc_security_group_ids      = ["${aws_security_group.hashicups-sg.id}"]
+  subnet_id                   = var.subnet_id
   user_data = templatefile("${path.module}/configs/deploy_app.tpl", {})
 
   tags = {
