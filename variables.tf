@@ -16,6 +16,10 @@ variable "keypair" {
   description = "Specifies the EC2 keypair"
 }
 
+variable "vpc_id" {
+   description = "Specified the VPC ID to use"
+}
+
 variable "subnet_id" {
    description = "Specified the subnet ID to use"
 }
