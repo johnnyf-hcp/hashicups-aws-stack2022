@@ -16,6 +16,10 @@ variable "keypair" {
   description = "Specifies the EC2 keypair"
 }
 
+variable "subnet_id" {
+   description = "Specified the subnet ID to use"
+}
+
 variable "region" {
   description = "The region where the resources are created."
   default     = "ap-southeast-1"
