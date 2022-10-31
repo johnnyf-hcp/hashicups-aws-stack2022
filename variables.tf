@@ -17,7 +17,7 @@ variable "keypair" {
   description = "Specifies the EC2 keypair"
 }
 
-variable "vpc_id" {
+variable "vpcid" {
   description = "Specified the VPC ID to use"
 }
 
