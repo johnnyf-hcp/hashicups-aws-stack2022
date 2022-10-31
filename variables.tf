@@ -10,6 +10,7 @@ variable "prefix" {
 }
 variable "environment" {
   description = "Specifies the environment type. e.g. dev, stg, prd."
+  default = "dev"
 }
 
 variable "keypair" {
