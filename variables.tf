@@ -18,7 +18,7 @@ variable "keypair" {
 }
 
 variable "vpc_id" {
-   description = "Specified the VPC ID to use"
+  description = "Specified the VPC ID to use"
 }
 
 variable "subnet_id" {
