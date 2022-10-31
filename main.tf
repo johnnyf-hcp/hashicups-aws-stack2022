@@ -36,7 +36,7 @@ data "aws_ami" "amazon-linux-2" {
 # limit SSH, HTTP and API (8080) ports to my IP
 resource "aws_security_group" "hashicups-sg" {
   name = "${var.prefix}-${var.environment}-hashicups-sg"
-  vpc_id = var.vpcid
+  vpc_id = var.vpc_id
 
   ingress {
     from_port   = 22
@@ -80,7 +80,7 @@ resource "aws_instance" "hashicups-docker-server" {
   instance_type               = var.instance_type
   key_name                    = var.keypair
   vpc_security_group_ids      = ["${aws_security_group.hashicups-sg.id}"]
-  subnet_id                   = var.subnetid
+  subnet_id                   = var.subnet_id
   user_data = templatefile("${path.module}/configs/deploy_app.tpl", {})
 
   tags = {
