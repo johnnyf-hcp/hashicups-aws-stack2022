@@ -76,7 +76,7 @@ resource "aws_security_group" "hashicups-sg" {
 resource "aws_instance" "hashicups-docker-server" {
   ami                         = "${data.aws_ami.amazon-linux-2.id}"
   associate_public_ip_address = true
-  iam_instance_profile        = var.iam_role_name
+#  iam_instance_profile        = var.iam_role_name
   instance_type               = var.instance_type
   key_name                    = var.keypair
   vpc_security_group_ids      = ["${aws_security_group.hashicups-sg.id}"]
