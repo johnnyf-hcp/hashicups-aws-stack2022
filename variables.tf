@@ -21,7 +21,7 @@ variable "vpcid" {
   description = "Specified the VPC ID to use"
 }
 
-variable "subnet_id" {
+variable "subnetid" {
    description = "Specified the subnet ID to use"
 }
 
