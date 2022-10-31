@@ -36,6 +36,7 @@ data "aws_ami" "amazon-linux-2" {
 # limit SSH, HTTP and API (8080) ports to my IP
 resource "aws_security_group" "hashicups-sg" {
   name = "${var.prefix}-${var.environment}-hashicups-sg"
+  vpc_id = var.vpc_id
 
   ingress {
     from_port   = 22
