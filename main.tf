@@ -8,8 +8,64 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.region
+  region = var.region
 }
+
+# create a keypair
+# Generates a secure private key and encodes it as PEM
+resource "tls_private_key" "hashicups_key_pair" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+# Create the Key Pair
+resource "aws_key_pair" "hashicups_key_pair" {
+  key_name   = "hashicups-key-pair"
+  public_key = tls_private_key.hashicups_key_pair.public_key_openssh
+}
+# Save PEM file locally
+resource "local_file" "hashicups_ssh_key" {
+  filename = "${aws_key_pair.hashicups_key_pair.key_name}.pem"
+  content  = tls_private_key.hashicups_key_pair.private_key_pem
+}
+
+# Setting up a new agency VPC
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "3.18.1"
+
+  name = "my-vpc"
+  cidr = "10.100.0.0/16"
+  azs  = ["ap-southeast-1a"]
+  #private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets = ["10.100.0.0/24"]
+
+  #enable_nat_gateway = true
+  #enable_vpn_gateway = true
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
+  tags = {
+    Name        = "${var.prefix}-${var.environment}-hashicups"
+    Owner       = "${var.prefix}"
+    Environment = "${var.environment}"
+  }
+}
+
+# Setting up EC2 instance role for SSM agent and CloudWatch Log agent
+module "ssm_cwl_role" {
+  source                = "Cloud-42/ec2-iam-role/aws"
+  version               = "4.0.0"
+  principal_type        = "Service"
+  principal_identifiers = ["ec2.amazonaws.com"]
+
+  name = "${var.prefix}-${var.environment}-hashicups-ec2-ssm-cwl-role"
+
+  policy_arn = [
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+  ]
+}
+
 
 # Latest Amazon LINUX 2 AMI
 data "aws_ami" "amazon-linux-2" {
@@ -33,18 +89,12 @@ data "aws_ami" "amazon-linux-2" {
   }
 }
 
-# limit SSH, HTTP and API (8080) ports to my IP
+# limit SSH, RDP, HTTP and API (8080) ports to my IP
 resource "aws_security_group" "hashicups-sg" {
-  name = "${var.prefix}-${var.environment}-hashicups-sg"
-  vpc_id = var.vpc_id
+  name   = "${var.prefix}-${var.environment}-hashicups-sg"
+  vpc_id = module.vpc.vpc_id
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
+  # HTTP access
   ingress {
     from_port   = 80
     to_port     = 80
@@ -52,6 +102,7 @@ resource "aws_security_group" "hashicups-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Web API HTTP access
   ingress {
     from_port   = 8080
     to_port     = 8080
@@ -68,25 +119,54 @@ resource "aws_security_group" "hashicups-sg" {
   }
 
   tags = {
-    Name = "${var.prefix}-${var.environment}-hashicups-sg"
+    Name        = "${var.prefix}-${var.environment}-hashicups-sg"
+    Owner       = "${var.prefix}"
+    Environment = "${var.environment}"
   }
 }
 
-# Provision in default VPC and subnet.  Make sure the routing tables provide internet access
+# Setting up HashiCups linux server
 resource "aws_instance" "hashicups-docker-server" {
-  ami                         = "${data.aws_ami.amazon-linux-2.id}"
+  ami                         = data.aws_ami.amazon-linux-2.id
   associate_public_ip_address = true
-#  iam_instance_profile        = var.iam_role_name
+  iam_instance_profile        = module.ssm_cwl_role.role.name
   instance_type               = var.instance_type
-  key_name                    = var.keypair
+  key_name                    = aws_key_pair.hashicups_key_pair.key_name
   vpc_security_group_ids      = ["${aws_security_group.hashicups-sg.id}"]
-  subnet_id                   = var.subnet_id
-  user_data = templatefile("${path.module}/configs/deploy_app.tpl", {})
+  subnet_id                   = module.vpc.public_subnets[0] # place into first public subnet
+  user_data                   = templatefile("${path.module}/configs/deploy_app.tpl", {})
 
   tags = {
-    Name = "${var.prefix}-${var.environment}-hashicups-app"
-    Owner = "${var.prefix}"
-    Purpose = "Field Demo"
+    Name        = "${var.prefix}-${var.environment}-hashicups-app"
+    Owner       = "${var.prefix}"
+    Environment = "${var.environment}"
+  }
+}
+
+# Get latest Windows Server 2022 AMI
+data "aws_ami" "windows-2022" {
+  most_recent = true
+  owners      = ["amazon"]
+  filter {
+    name   = "name"
+    values = ["Windows_Server-2022-English-Full-Base*"]
+  }
+}
+
+# Create a Windows EC2 Instance for SSM and Fleet Manager demo
+resource "aws_instance" "windows-server" {
+  ami                         = data.aws_ami.windows-2022.id
+  associate_public_ip_address = true
+  iam_instance_profile        = module.ssm_cwl_role.role.name
+  instance_type               = var.instance_type
+  key_name                    = aws_key_pair.hashicups_key_pair.key_name
+  vpc_security_group_ids      = ["${aws_security_group.hashicups-sg.id}"]
+  subnet_id                   = module.vpc.public_subnets[0] # place into first public subnet
+
+
+  tags = {
+    Name        = "${var.prefix}-${var.environment}-demo-windows-server"
+    Owner       = "${var.prefix}"
     Environment = "${var.environment}"
   }
 }
