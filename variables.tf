@@ -7,22 +7,11 @@
 
 variable "prefix" {
   description = "This prefix will be included in the name of most resources."
+  default     = "hashicups-workload"
 }
 variable "environment" {
   description = "Specifies the environment type. e.g. dev, stg, prd."
-  default = "dev"
-}
-
-variable "keypair" {
-  description = "Specifies the EC2 keypair"
-}
-
-variable "vpc_id" {
-  description = "Specified the VPC ID to use"
-}
-
-variable "subnet_id" {
-   description = "Specified the subnet ID to use"
+  default     = "dev"
 }
 
 variable "region" {
@@ -30,13 +19,7 @@ variable "region" {
   default     = "ap-southeast-1"
 }
 
-variable "iam_role_name" {
-  description = "The address space that is used by the virtual network. You can supply more than one address space. Changing this forces a new resource to be created."
-  default     = "AmazonSSMRoleForInstancesQuickSetup"
-}
-
 variable "instance_type" {
   description = "Specifies the AWS instance type."
   default     = "t2.micro"
 }
-
