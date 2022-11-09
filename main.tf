@@ -24,6 +24,8 @@ resource "aws_key_pair" "hashicups_key_pair" {
 }
 # Save PEM file locally
 resource "local_file" "hashicups_ssh_key" {
+  # save the PEM file if no keypair is specified
+  count = var.keypair == null ? 1 : 0
   filename = "${aws_key_pair.hashicups_key_pair.key_name}.pem"
   content  = tls_private_key.hashicups_key_pair.private_key_pem
 }
@@ -131,7 +133,8 @@ resource "aws_instance" "hashicups-docker-server" {
   associate_public_ip_address = true
   iam_instance_profile        = module.ssm_cwl_role.role.name
   instance_type               = var.instance_type
-  key_name                    = aws_key_pair.hashicups_key_pair.key_name
+  # use the specified keypair if specified
+  key_name                    = var.keypair != null ? var.keypair : aws_key_pair.hashicups_key_pair.key_name
   vpc_security_group_ids      = ["${aws_security_group.hashicups-sg.id}"]
   subnet_id                   = module.vpc.public_subnets[0] # place into first public subnet
   user_data                   = templatefile("${path.module}/configs/deploy_app.tpl", {})
@@ -159,7 +162,8 @@ resource "aws_instance" "windows-server" {
   associate_public_ip_address = true
   iam_instance_profile        = module.ssm_cwl_role.role.name
   instance_type               = var.instance_type
-  key_name                    = aws_key_pair.hashicups_key_pair.key_name
+  # use the specified keypair if specified
+  key_name                    = var.keypair != null ? var.keypair : aws_key_pair.hashicups_key_pair.key_name
   vpc_security_group_ids      = ["${aws_security_group.hashicups-sg.id}"]
   subnet_id                   = module.vpc.public_subnets[0] # place into first public subnet
 
