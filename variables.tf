@@ -23,3 +23,8 @@ variable "instance_type" {
   description = "Specifies the AWS instance type."
   default     = "t2.micro"
 }
+
+variable "keypair" {
+  description = "Specifies the EC2 keypair. It not specified, it creates a new keypair."
+  default = null
+}
